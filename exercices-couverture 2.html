@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Exercices : couverture du risque de change</title>
+<style>
+:root{--bg:#f3f6f4;--card:#fff;--tx:#12231c;--mu:#5a6d64;--ac:#1f7a5c;--ac2:#b87d12;--bd:#d3ddd7;--ok:#1f7a5c;--ko:#b3402b;--code:#e8efeb}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1612;--card:#15231c;--tx:#e6efe9;--mu:#92a89c;--ac:#4cc49a;--ac2:#e0a93a;--bd:#254034;--ok:#4cc49a;--ko:#ef8a74;--code:#1d3128}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif;padding:16px;max-width:620px;margin-inline:auto}
+h1{font:700 1.5rem/1.2 Georgia,serif;margin:8px 0 4px}
+.sub{color:var(--mu);font-size:.9rem;margin:0 0 16px}
+section,details{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:16px}
+summary{cursor:pointer;font:700 1.05rem/1.3 Georgia,serif}
+.f{background:var(--code);border-left:3px solid var(--ac);border-radius:8px;padding:8px 12px;margin:8px 0;font-family:ui-monospace,Menlo,monospace;font-size:.86rem;overflow-x:auto;white-space:pre-wrap}
+.tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--ac2);border:1px solid var(--ac2);border-radius:20px;padding:1px 10px;margin-bottom:8px}
+label{display:block;font-size:.85rem;color:var(--mu);margin-bottom:4px}
+input,button{font:inherit;color:inherit;border-radius:10px;border:1px solid var(--bd);background:var(--bg);padding:10px;width:100%}
+input:focus,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{cursor:pointer}
+button.go{background:var(--ac);color:#fff;border:0;font-weight:600;margin-top:10px}
+button.alt{margin-top:8px}
+.fb{margin-top:10px;font-weight:600}.ok{color:var(--ok)}.ko{color:var(--ko)}
+.sol{font-size:.9rem;color:var(--mu);margin-top:6px;white-space:pre-line}
+#sc{font-weight:700;color:var(--ac)}
+</style>
+</head>
+<body>
+<h1>Couverture du risque de change</h1>
+<p class="sub">Exercices tirés au hasard. Cours en USD pour 1 EUR, entreprise basée dans la zone euro.</p>
+
+<details>
+<summary>Rappel des formules</summary>
+<div class="f">Créance à terme : recette en EUR = montant USD ÷ F
+Marché monétaire (dette en USD) :
+  1. USD à placer = dette ÷ (1 + i·n/12)
+  2. Coût aujourd'hui en EUR = USD à placer ÷ S
+Call acheté : gain = max(S₁ − K ; 0) − prime
+Gain de la couverture = recette couverte − recette sans couverture</div>
+</details>
+
+<section>
+<p>Réussis : <span id="sc">0 / 0</span></p>
+<span class="tag" id="tag"></span>
+<p id="enonce"></p>
+<div id="zone"></div>
+<div class="fb" id="fb" aria-live="polite"></div>
+<div class="sol" id="sol"></div>
+<button class="alt" id="nv">Nouvel exercice</button>
+</section>
+
+<script>
+const $=id=>document.getElementById(id);
+const nf=n=>new Intl.NumberFormat("fr-FR",{maximumFractionDigits:4}).format(n);
+const eur=n=>new Intl.NumberFormat("fr-FR",{maximumFractionDigits:0}).format(n)+" EUR";
+const r=(a,b,p=2)=>{const k=Math.pow(10,p);return Math.round((a+Math.random()*(b-a))*k)/k};
+const mt=()=>Math.round(r(5,50,0))*10000;
+let exo=null,ok=0,tot=0,fait=false;
+
+const GEN=[
+function(){ // créance à terme
+  const X=mt(),F=r(.95,1.25),n=[3,6][Math.floor(Math.random()*2)];
+  const rep=X/F;
+  return {tag:"Couverture à terme",rel:.002,rep,
+    q:`Une entreprise de la zone euro vend des marchandises et recevra ${nf(X)} USD dans ${n} mois. Elle vend ces dollars à terme au cours de 1 EUR = ${nf(F)} USD. Combien d'euros recevra-t-elle (arrondi à l'euro) ?`,
+    sol:`Recette = ${nf(X)} ÷ ${nf(F)} = ${eur(rep)}, quel que soit le cours le jour de l'encaissement.`};
+},
+function(){ // marché monétaire
+  const X=mt(),S=r(.95,1.25),i=r(3,6,1),n=[3,6][Math.floor(Math.random()*2)];
+  const pl=X/(1+i/100*n/12),rep=pl/S;
+  return {tag:"Couverture sur le marché monétaire",rel:.002,rep,
+    q:`Une entreprise de la zone euro doit payer ${nf(X)} USD dans ${n} mois. Taux du dollar : ${nf(i)} % par an. Aujourd'hui, 1 EUR = ${nf(S)} USD. Elle place aujourd'hui le montant en dollars qui vaudra exactement sa dette à l'échéance. Combien d'euros doit-elle débiter aujourd'hui pour l'acheter (arrondi à l'euro) ?`,
+    sol:`1) USD à placer = ${nf(X)} ÷ (1 + ${nf(i/100)} × ${n}/12) = ${nf(pl)} USD.\n2) Coût en EUR = ${nf(pl)} ÷ ${nf(S)} = ${eur(rep)}.`};
+},
+function(){ // option call
+  const K=r(.95,1.2),p=r(.01,.04),N=mt(),S1=r(K-.1,K+.12);
+  const rep=N*(Math.max(S1-K,0)-p);
+  return {tag:"Option de change (call)",abs:Math.max(50,Math.abs(rep)*.003),rep,
+    q:`Une entreprise achète un call sur ${nf(N)} EUR : prix d'exercice K = ${nf(K)} USD, prime = ${nf(p)} USD par euro. À l'échéance, 1 EUR = ${nf(S1)} USD. Quel est son résultat net en USD (négatif si perte), arrondi à l'unité ?`,
+    sol:`Valeur de l'option = max(${nf(S1)} − ${nf(K)} ; 0) = ${nf(Math.max(S1-K,0))} par euro.\nRésultat = ${nf(N)} × (${nf(Math.max(S1-K,0))} − ${nf(p)}) = ${nf(rep)} USD.\n${S1<=K?"L'option n'est pas exercée : la perte est limitée à la prime.":""}`};
+},
+function(){ // gain de la couverture
+  const X=mt(),F=r(1,1.2),S2=r(F-.1,F+.1);
+  const rep=X/F-X/S2;
+  return {tag:"Gain de la couverture à terme",abs:Math.max(50,Math.abs(rep)*.003),rep,
+    q:`Une entreprise attend ${nf(X)} USD dans 6 mois. Elle les vend à terme à 1 EUR = ${nf(F)} USD. À l'échéance, le cours est finalement de 1 EUR = ${nf(S2)} USD. Quel est le gain (ou la perte, en négatif) de la couverture par rapport à une absence de couverture, en euros ?`,
+    sol:`Avec couverture : ${nf(X)} ÷ ${nf(F)} = ${eur(X/F)}.\nSans couverture : ${nf(X)} ÷ ${nf(S2)} = ${eur(X/S2)}.\nDifférence = ${eur(rep)} ${rep>=0?"(la couverture a été favorable)":"(la couverture a coûté de l'argent, mais elle a supprimé l'incertitude)"}.`};
+},
+function(){ // choix instrument
+  const t=Math.random()<.5;
+  return {tag:"Choix de l'instrument",choix:["terme","option"],rep:t?"terme":"option",
+    q:t?"Un trésorier veut connaître avec certitude le montant en euros qu'il encaissera, sans payer de prime, même s'il renonce à un éventuel gain. Quel instrument choisit-il ?"
+       :"Un trésorier veut se protéger contre une baisse du dollar tout en gardant le gain si le dollar monte, et accepte de payer une prime. Quel instrument choisit-il ?",
+    sol:t?"Le contrat à terme fixe le cours : certitude totale, pas de prime, mais aucun gain possible si le marché évolue favorablement."
+         :"L'option donne un droit, pas une obligation : protection contre la baisse et gain conservé, au prix de la prime."};
+}];
+
+function nouvel(){
+  exo=GEN[Math.floor(Math.random()*GEN.length)]();fait=false;
+  $("tag").textContent=exo.tag;$("enonce").textContent=exo.q;
+  $("fb").textContent="";$("sol").textContent="";
+  const z=$("zone");
+  if(exo.choix){
+    z.innerHTML='<div class="duo"></div>';
+    exo.choix.forEach(c=>{const b=document.createElement("button");b.textContent=c==="terme"?"Contrat à terme":"Option de change";b.onclick=()=>noter(c===exo.rep);z.firstChild.appendChild(b)});
+  }else{
+    z.innerHTML='<label for="rep">Ta réponse</label><input id="rep" type="text" inputmode="decimal"><button class="go" id="ver">Vérifier</button>';
+    $("ver").onclick=verifier;
+    $("rep").addEventListener("keydown",e=>{if(e.key==="Enter")verifier()});
+  }
+}
+function verifier(){
+  const v=parseFloat($("rep").value.replace(/\s|EUR|USD/gi,"").replace(",",".").replace("−","-"));
+  if(isNaN(v)){$("fb").className="fb ko";$("fb").textContent="Entre un nombre.";return}
+  const bon=exo.abs!==undefined?Math.abs(v-exo.rep)<=exo.abs:Math.abs(v-exo.rep)/Math.abs(exo.rep)<=exo.rel;
+  noter(bon);
+}
+function noter(bon){
+  if(!fait){fait=true;tot++;if(bon)ok++;$("sc").textContent=ok+" / "+tot}
+  $("fb").className="fb "+(bon?"ok":"ko");
+  $("fb").textContent=bon?"Correct.":"Pas tout à fait. Réponse attendue : "+(exo.choix?(exo.rep==="terme"?"contrat à terme":"option de change"):nf(Math.round(exo.rep)));
+  $("sol").textContent=exo.sol;
+}
+$("nv").onclick=nouvel;nouvel();
+</script>
+</body>
+</html>

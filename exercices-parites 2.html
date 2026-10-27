@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Exercices : parités et prévision des taux</title>
+<style>
+:root{--bg:#f3f6f4;--card:#fff;--tx:#12231c;--mu:#5a6d64;--ac:#1f7a5c;--ac2:#b87d12;--bd:#d3ddd7;--ok:#1f7a5c;--ko:#b3402b;--code:#e8efeb}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1612;--card:#15231c;--tx:#e6efe9;--mu:#92a89c;--ac:#4cc49a;--ac2:#e0a93a;--bd:#254034;--ok:#4cc49a;--ko:#ef8a74;--code:#1d3128}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif;padding:16px;max-width:620px;margin-inline:auto}
+h1{font:700 1.5rem/1.2 Georgia,serif;margin:8px 0 4px}
+h2{font:700 1.1rem/1.3 Georgia,serif;margin:0 0 10px}
+.sub{color:var(--mu);font-size:.9rem;margin:0 0 16px}
+section,details{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:16px}
+summary{cursor:pointer;font:700 1.05rem/1.3 Georgia,serif}
+.f{background:var(--code);border-left:3px solid var(--ac);border-radius:8px;padding:8px 12px;margin:8px 0;font-family:ui-monospace,Menlo,monospace;font-size:.86rem;overflow-x:auto;white-space:pre-wrap}
+.tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--ac2);border:1px solid var(--ac2);border-radius:20px;padding:1px 10px;margin-bottom:8px}
+label{display:block;font-size:.85rem;color:var(--mu);margin-bottom:4px}
+input,button{font:inherit;color:inherit;border-radius:10px;border:1px solid var(--bd);background:var(--bg);padding:10px;width:100%}
+input:focus,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{cursor:pointer}
+button.go{background:var(--ac);color:#fff;border:0;font-weight:600;margin-top:10px}
+button.alt{margin-top:8px}
+.fb{margin-top:10px;font-weight:600}.ok{color:var(--ok)}.ko{color:var(--ko)}
+.sol{font-size:.9rem;color:var(--mu);margin-top:6px;white-space:pre-line}
+#sc{font-weight:700;color:var(--ac)}
+</style>
+</head>
+<body>
+<h1>Parités et prévision des taux</h1>
+<p class="sub">Exercices tirés au hasard : les chiffres changent à chaque fois.</p>
+
+<details>
+<summary>Rappel des formules</summary>
+<div class="f">PPA relative : S₁ = S₀ × (1 + π) ÷ (1 + π*)
+Fisher international : E(S₁) ÷ S₀ = (1 + i) ÷ (1 + i*)
+PTI : F = S × (1 + i·n/360) ÷ (1 + i*·n/360)
+Report si F > S, déport si F < S</div>
+<p class="sub">S : monnaie nationale par unité de devise. π et i : inflation et taux d'intérêt nationaux. π* et i* : étrangers.</p>
+</details>
+
+<section>
+<p>Réussis : <span id="sc">0 / 0</span></p>
+<span class="tag" id="tag"></span>
+<p id="enonce"></p>
+<div id="zone"></div>
+<div class="fb" id="fb" aria-live="polite"></div>
+<div class="sol" id="sol"></div>
+<button class="alt" id="nv">Nouvel exercice</button>
+</section>
+
+<script>
+const $=id=>document.getElementById(id);
+const nf=n=>new Intl.NumberFormat("fr-FR",{maximumFractionDigits:4}).format(n);
+const r=(a,b,p=1)=>{const k=Math.pow(10,p);return Math.round((a+Math.random()*(b-a))*k)/k};
+let exo=null,ok=0,tot=0,fait=false;
+
+const GEN=[
+function(){ // PPA relative
+  const S=Math.round(r(600,1800,0)),p=r(4,15),ps=r(1,3);
+  const rep=S*(1+p/100)/(1+ps/100);
+  return {tag:"PPA relative",rel:.003,rep,
+    q:`Le pays X (monnaie MX) a une inflation de ${nf(p)} % par an, la zone euro de ${nf(ps)} %. Aujourd'hui, 1 EUR = ${S} MX. Selon la PPA relative, quel sera le cours dans 1 an (MX pour 1 EUR) ?`,
+    sol:`S₁ = S₀ × (1+π) ÷ (1+π*) = ${S} × ${nf(1+p/100)} ÷ ${nf(1+ps/100)} = ${nf(rep)} MX.\nLa monnaie MX se déprécie car son inflation est plus forte.`};
+},
+function(){ // Fisher
+  const i=r(6,20),is=r(1,4);
+  const rep=((1+i/100)/(1+is/100)-1)*100;
+  return {tag:"Effet Fisher international",abs:.35,rep,
+    q:`Le taux d'intérêt est de ${nf(i)} % dans le pays X et de ${nf(is)} % dans la zone euro. Selon l'effet Fisher international, de combien de % la monnaie du pays X est-elle attendue en dépréciation face à l'euro sur 1 an ?`,
+    sol:`(1+i) ÷ (1+i*) − 1 = ${nf(1+i/100)} ÷ ${nf(1+is/100)} − 1 = ${nf(rep)} %.\nL'approximation i − i* = ${nf(i-is)} % est aussi acceptée.`};
+},
+function(){ // PTI
+  const S=r(.9,1.3,2),i=r(2,6),is=r(0,3),n=[90,180][Math.floor(Math.random()*2)];
+  const rep=S*(1+i/100*n/360)/(1+is/100*n/360);
+  return {tag:"Parité des taux d'intérêt couverte",rel:.0005,rep,
+    q:`Au comptant, 1 EUR = ${nf(S)} USD. Taux à ${n} jours : USD ${nf(i)} %, EUR ${nf(is)} %. Quel est le cours à terme (USD pour 1 EUR) ? Arrondis à 4 décimales.`,
+    sol:`F = S × (1 + i·n/360) ÷ (1 + i*·n/360) = ${nf(S)} × ${nf(1+i/100*n/360)} ÷ ${nf(1+is/100*n/360)} = ${nf(rep)} USD.\nF − S = ${nf(rep-S)} : ${rep>S?"l'euro est en report":"l'euro est en déport"}.`};
+},
+function(){ // Report / déport
+  let i,is;do{i=r(1,7,1);is=r(1,7,1)}while(i===is);
+  const S=r(.9,1.3,2),rep=i>is?"report":"déport";
+  return {tag:"Report ou déport",choix:["report","déport"],rep,
+    q:`Au comptant, 1 EUR = ${nf(S)} USD. Taux à 3 mois : USD ${nf(i)} %, EUR ${nf(is)} %. À terme, l'euro est-il en report ou en déport face au dollar ?`,
+    sol:`La monnaie au taux d'intérêt le plus faible vaut plus cher à terme. Ici ${i>is?"l'euro (taux plus faible) vaut plus de dollars à terme : F > S, donc report":"l'euro (taux plus élevé) vaut moins de dollars à terme : F < S, donc déport"}.`};
+}];
+
+function nouvel(){
+  exo=GEN[Math.floor(Math.random()*GEN.length)]();fait=false;
+  $("tag").textContent=exo.tag;$("enonce").textContent=exo.q;
+  $("fb").textContent="";$("sol").textContent="";
+  const z=$("zone");
+  if(exo.choix){
+    z.innerHTML='<div class="duo"></div>';
+    exo.choix.forEach(c=>{const b=document.createElement("button");b.textContent=c[0].toUpperCase()+c.slice(1);b.onclick=()=>noter(c===exo.rep,b);z.firstChild.appendChild(b)});
+  }else{
+    z.innerHTML='<label for="rep">Ta réponse</label><input id="rep" type="text" inputmode="decimal"><button class="go" id="ver">Vérifier</button>';
+    $("ver").onclick=verifier;
+    $("rep").addEventListener("keydown",e=>{if(e.key==="Enter")verifier()});
+  }
+}
+function verifier(){
+  const v=parseFloat($("rep").value.replace(/\s|%/g,"").replace(",",".").replace("−","-"));
+  if(isNaN(v)){$("fb").className="fb ko";$("fb").textContent="Entre un nombre.";return}
+  const bon=exo.abs!==undefined?Math.abs(v-exo.rep)<=exo.abs:Math.abs(v-exo.rep)/Math.abs(exo.rep)<=exo.rel;
+  noter(bon);
+}
+function noter(bon){
+  if(!fait){fait=true;tot++;if(bon)ok++;$("sc").textContent=ok+" / "+tot}
+  $("fb").className="fb "+(bon?"ok":"ko");
+  $("fb").textContent=bon?"Correct.":"Pas tout à fait. Réponse attendue : "+(exo.choix?exo.rep:nf(exo.rep));
+  $("sol").textContent=exo.sol;
+}
+$("nv").onclick=nouvel;nouvel();
+</script>
+</body>
+</html>
